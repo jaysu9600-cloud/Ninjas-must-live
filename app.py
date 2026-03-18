@@ -19,6 +19,10 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("忍者必須活")
 clock = pygame.time.Clock()
 
+# 初始化字型系統
+pygame.font.init()
+font = pygame.font.SysFont("Microsoft JhengHei", 30)
+
 ninja_img = pygame.image.load(os.path.join("img","ninja.png")).convert_alpha()
 
 # 初始化計時器
@@ -52,6 +56,12 @@ all_sprites = pygame.sprite.Group()
 player = Player()
 all_sprites.add(player)
 
+# 計分系統變數
+score = 0
+score_rate = 10  # 初始每秒得分
+last_score_tick = pygame.time.get_ticks()
+last_rate_increase_tick = last_score_tick
+
 running = True
 while running:
     clock.tick(FPS)
@@ -74,6 +84,19 @@ while running:
             pygame.time.set_timer(SPAWN_EVENT, random.randint(1000, 2500))
 
     # --- 邏輯更新 ---
+    current_time = pygame.time.get_ticks()
+    
+    # 每隔 1 秒增加分數 (1000 毫秒)
+    if current_time - last_score_tick >= 1000:
+        score += score_rate
+        last_score_tick = current_time
+    
+    # 每隔 10 秒增加得分率 (10000 毫秒)
+    if current_time - last_rate_increase_tick >= 10000:
+        score_rate += 10 # 每 10 秒增加 10 分的秒分量
+        last_rate_increase_tick = current_time
+        print(f"得分增量提升！目前每秒得分: {score_rate}")
+
     if obstacles_speed < max_speed:
         obstacles_speed += acceleration
     
@@ -84,6 +107,13 @@ while running:
         if obstacle.right < 0:
             obstacles.remove(obstacle)
 
+    # --- 碰撞檢測 ---
+    for obstacle in obstacles:
+        # 使用 pygame.Rect.colliderect 檢測玩家與障礙物的碰撞
+        if player.rect.colliderect(obstacle):
+            print("遊戲結束！")
+            running = False
+
     # --- 畫面繪製 ---
     screen.fill((255, 255, 255))
     
@@ -93,6 +123,10 @@ while running:
     all_sprites.draw(screen)
     for obstacle in obstacles:
         pygame.draw.rect(screen, (255, 0, 0), obstacle)
+    
+    # 繪製計分資訊 (顯示在左上角)
+    score_surface = font.render(f"分數: {score} (+{score_rate}/s)", True, (0, 0, 0))
+    screen.blit(score_surface, (10, 10))
         
     pygame.display.update()
 
